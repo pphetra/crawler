@@ -5,11 +5,14 @@
      (org.openqa.selenium.chrome ChromeDriver ChromeProfile ChromeExtension)))
 
 
-(defn new-driver []
+(defn new-driver-no-image []
   (def *driver* (new ChromeDriver
 		     (ChromeProfile. (File. "/tmp"))
 		     (ChromeExtension.)
 		     )))
+
+(defn new-driver []
+  (def *driver* (ChromeDriver.)))
 
 (defn go [url]
   (.get *driver* url))
