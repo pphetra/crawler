@@ -1,7 +1,10 @@
 (ns crawl.core
   (:import (org.openqa.selenium By)
      (java.io File)
-     (org.openqa.selenium WebDriver NoSuchElementException)
+     (org.openqa.selenium WebDriver NoSuchElementException WebDriverException)
+     (org.openqa.selenium.htmlunit HtmlUnitDriver)
+     (org.openqa.selenium.firefox FirefoxDriver)
+     (java.util.concurrent LinkedBlockingQueue)
      (org.openqa.selenium.chrome ChromeDriver ChromeProfile ChromeExtension)))
 
 
@@ -13,6 +16,22 @@
 
 (defn new-driver []
   (def *driver* (ChromeDriver.)))
+
+(defn init-queue []
+  (def *queue* (LinkedBlockingQueue.)))
+
+(defn start-thread [driver func]
+  (.start
+   (Thread.
+    (fn []
+      (loop []
+	(let [code (.take *queue*)]
+	  (binding [*driver* driver]
+	    (func code)))
+	(recur))))))
+
+(defn new-html-driver []
+  (def *driver* (HtmlUnitDriver. true)))
 
 (defn go [url]
   (.get *driver* url))
@@ -62,15 +81,35 @@
       (Thread/sleep 2000)
       (recur elm))))
 
+(defn js [script]
+  (.executeScript *driver* script (into-array [])))
+
+(defn wait-for-loading []
+  (let [ret (try (js "return document.title") (catch WebDriverException e nil))]
+    (if (nil? ret)
+      (do
+	(Thread/sleep 2000)
+	(recur))
+      true)))
+
+(defn fetch [code]
+  (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
+  (send-key (by-css-selector "div#zip-code-field > input") code)
+  (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]")))
+  
 (defn run []
-  (new-driver)
+  ;;(new-driver)
   (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
   (send-key (by-css-selector "div#zip-code-field > input") "17331")
   (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]"))
-  (Thread/sleep 10000)
+  (Thread/sleep 1000)
+  (wait-for-loading)
+  (Thread/sleep 1000)
   (wait-for-display (find-element (by-css-selector "div.SplitCountyModalPopup")))
   (click-labels "YORK" *driver*)
   (click (by-css-selector "input[type=submit][value=Continue]"))
+  (Thread/sleep 1000)
+  (wait-for-loading)
   )
 
 ;;  (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
