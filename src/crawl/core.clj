@@ -98,7 +98,7 @@
   (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]")))
   
 (defn run []
-  ;;(new-driver)
+  (new-driver)
   (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
   (send-key (by-css-selector "div#zip-code-field > input") "17331")
   (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]"))
@@ -112,12 +112,130 @@
   (wait-for-loading)
   )
 
-;;  (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
-;;  (send-key (by-css-selector "div#zip-code-field > input") "17331")
-;;  (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]"))
 
-;;  (wait-for (partial click-labels "YORK") (by-css-selector "div.SplitCountyModalPopup"))
-;;  (click (by-css-selector "input[type=submit][value=Continue]"))
+(defn run2 []
+  (start)
+  (enter-zip-code "13331")
 
-;;  (wait-for (partial click-labels "I don't know") (by-css-selector "div#GeneralQuestionsContent"))
-;;  (click (by-css-selector "input[type=button][alternatetext=\"Continue to Plan Results\")]"))
+  (answer-i-dont-know)
+
+  (answer-no-drug)
+  (answer-no-phamacies)
+  
+  (click-continue)
+  (dump-plans)
+  (go-plan "....")
+  (dump-benefits)
+)
+
+(defn start []
+  (.get *driver* "https://www.medicare.gov/find-a-plan/questions/home.aspx"))
+
+(defn enter-zip-code [zipCode]
+  (send-key (by-css-selector "div#zip-code-field > input") zipCode)
+  (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]")))
+
+(defn click-i-dont-know []
+  (click-labels "I don't know" *driver*))
+
+(defn click-continue1 []
+  (click (by-css-selector "input[type=button][alternatetext=\"Continue to Plan Results\"]")))
+    
+(defn answer-i-dont-know []
+  (do
+    (.click (.findElement *driver* (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")))
+    (.click (.findElement *driver* (by-css-selector "label[title=\"I don't know what help i am getting\"]")))
+    (click (by-css-selector "input[type=button][alternatetext=\"Continue to Plan Results\"]"))))
+
+(defn answer-no-drug []
+  (click (by-css-selector "a[title=\"I don't want to add drugs now\"]")))
+
+(defn answer-no-phamacies []
+  (click (by-css-selector "a#lnkDontAddDrugs")))
+
+(defn click-continue []
+  (click (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")))
+
+(defn dump-plans []
+  (doseq [plan (extract-all-plan)]
+    (let [type (first plan)
+	  text (second plan)]
+      (println (format "%s --> %s\n" type text)))))
+      
+(defn extract-plan [div type]
+  (let [root (.findElement *driver* (by-css-selector div))
+	elms (.findElements root (by-css-selector ".planName > a"))]
+    (map (fn [elm]
+	   (list type (.getText elm))) elms)))
+
+;; Prescription Drug Plans
+(defn extract-pdp []
+  (extract-plan "div#pdpContentWrapper" "pdp"))
+
+;; Medicare Health Plans with drug coverage
+(defn extract-mapd []
+  (extract-plan "div#mapdContentWrapper" "mapd"))
+
+;; Medicare Health Plans without drug coverage
+(defn extract-ma []
+  (extract-plan "div#maContentWrapper" "ma"))
+
+(defn extract-all-plan []
+  (let [pdp (extract-pdp)
+	mapd (extract-mapd)
+	ma (extract-ma)]
+    (concat pdp mapd ma)))
+	
+  
+(defstruct plan_county
+  :contract_h_name ;; contract id - 5 character. string starting with a letter and then 4 numbers X#### 
+  :plan_name ;; plan "name" which is the 3 digit
+  :segment ;; segment id - single didgit, assume zero if not specified
+  :contract_name ;; 
+  :plan_name_long
+  :plan_type ;; which of the 3 categorys the plan is listed under (PDP, med and drug, medical only)
+  :cover_drugs ;; yes/no
+  :fips 
+  :load_event_id
+  :plan_detail_url)
+
+(def *test-mdp* ("FreedomBlue PPO HD Rx (PPO) (H3916-025-0)" "Advantra Elite (PPO) (H5522-008-0)" "Geisinger Gold Classic 3 $0 Deductible Rx (HMO) (H3954-100-0)" "SeniorBlue - Option 2 (PPO) (H3923-013-0)" "Bravo Classic (HMO) (H3949-002-0)" "UnitedHealthcare MedicareComplete (HMO) (H3920-001-0)" "Bravo Achieve (HMO SNP) (H3949-024-0) (SNP)" "SecureHorizons MedicareComplete Choice (PPO) (H3921-001-0)" "Advantra Silver (PPO) (H5522-004-0)" "Evercare Plan IP (PPO SNP) (H3912-001-0) (SNP)"))
+
+(def *test-ma* ("Geisinger Gold Classic 3 (HMO) (H3954-098-0)" "Geisinger Gold Preferred 1 (PPO) (H3924-021-0)" "HumanaChoice R5826-062 (Regional PPO) (R5826-062-0)" "Geisinger Gold Preferred 2 (PPO) (H3924-045-0)" "Geisinger Gold Reserve (MSA) (H8468-001-0)" "UnitedHealthcare MedicareComplete Essential (HMO) (H3920-007-0)" "FreedomBlue PPO Value (PPO) (H3916-012-0)" "Humana Gold Choice H8145-055 (PFFS) (H8145-055-0)" "Today's Options Premier 800 (PFFS) (H2816-008-0)" "Today's Options Advantage 900 (PPO) (H2775-095-0)"))
+
+(def *test-pdp* ("Humana Walmart-Preferred Rx Plan (PDP) (S5884-104-0)" "AARP MedicareRx Preferred (PDP) (S5820-005-0)" "Humana Enhanced (PDP) (S5884-005-0)" "MedicareRx Rewards Plus (PDP) (S5960-144-0)" "First Health Part D Premier (PDP) (S5768-009-0)" "BlueRx Plus (PDP) (S5593-002-0)" "Health Net Orange Option 1 (PDP) (S5678-018-0)" "AmeriHealth Advantage (PDP) (S2770-001-0)" "CIGNA Medicare Rx Plan One (PDP) (S5617-215-0)" "Community CCRx Basic (PDP) (S5803-075-0)"))
+
+(defn go-plan [code]
+  (let [ary (.split code "-")
+	contract (nth ary 0)
+	plan (nth ary 1)
+	segment (nth ary 2)]
+    (go-more-plan-detail contract plan segment)))
+
+(defn go-plan-detail [contract plan segment]
+  (let [url (format "http://www.medicare.gov/find-a-plan/results/planresults/plan-details.aspx?cntrctid=%s&plnid=%s&sgmntid=%s#plan_benefits" contract plan segment)]
+    (.get *driver* url)))
+
+(defn click-tab-plan-benefit []
+  (let [css (by-css-selector "a[href=\"#plan_benefits\"]")
+	elm (.findElement *driver* css)]
+    (.click elm)))
+
+(defn go-more-plan-detail [contract plan segment]
+  (let [url (format "http://www.medicare.gov/find-a-plan/staticpages/plan-details-benefits-popup.aspx?cntrctid=%s&plnid=%s&sgmntid=%s&ctgry=" contract plan segment)]
+    (.get *driver* url)))
+
+(defn extract-benefits []
+  (let [elms (.findElements *driver* (by-css-selector "div.benefitsCategory"))]
+    (map (fn [elm]
+	   (let [header (.findElement elm (by-css-selector "div.benefitsCategoryHeader"))
+		 text (.findElement elm (by-css-selector "div.benefitsCategoryText"))]
+	     (list (.getText header) (.getText text))))
+	 elms)))
+
+(defn dump-benefits []
+  (doseq [pair (extract-benefits)]
+    (println (format "%s" (first pair)))
+    (println "======================================")
+    (println (second pair))
+    (println "--------------------------------------")))
