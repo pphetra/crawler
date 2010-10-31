@@ -29,7 +29,7 @@
 		  :contract_name contract_name
 		  :plan_name_long plan_name_long
 		  :plan_type plan_type
-		  :cover_drugs :cover_drugs
+		  :cover_drugs cover_drugs
 		  :fips fips
 		  :process_detail false
 		  :benefit-detail [] })
