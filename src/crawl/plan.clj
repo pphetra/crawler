@@ -95,6 +95,11 @@
 (defn un-process-plans []
   (fetch :plans :where {:process_detail false}))
 
+(defn escape-sql [txt]
+  (.. txt
+      (replace "'" "\\")
+      (replace "\n" "\\n")))
+
 (defn plan-sql [plan]
   (format "insert into plan (contract_h_name, plan_name, segment, contract_name, plan_name_long, plan_type, cover_drugs, fips) values ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')"
 	  (:contract_h_name plan)
@@ -102,7 +107,7 @@
 	  (:segment plan)
 	  (:contract_name plan)
 	  (:plan_name_long plan)
-	  (:play_type plan)
+	  (:plan_type plan)
 	  (:cover_drugs plan)
 	  (:fips plan)))
 
@@ -117,7 +122,7 @@
 			       segment
 			       (:cat_id benefit)
 			       (:name benefit)
-			       (:value benefit)
+			       (escape-sql (:value benefit))
 			       fips)) (:benefit-detail plan))))
 
 (defn sql [plan]
