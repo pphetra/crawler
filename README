@@ -1,9 +1,27 @@
 # crawl
 
-FIXME: write description
+   ..................	 ....................
+   .fips collection .  	 .   feed thread    .
+   .   (mongodb)    .----.		    .
+   .................. 	 ....................
+		      	       	  |
+       	       	     	 .........v..........
+       	       	       	 .  blocking queue  .
+ 			 .  	   	    .
+ 			 ....................
+ 		      /	       	  |	      \
+     ................v 	 .........v..........  v ................
+     .	fetch thread . 	 .   fetch thread   .  	 . fetch thread	.
+     .................	 ....................  	 ................
+		     \ 	       	  |    	       /
+		       v .........v..........v
+		         .  plans colletion .
+       	       	       	 .     (mongodb)    .
+         		 ....................
 
-## Usage
 
+## usage
+		   
 FIXME: write
 
 ## Installation
