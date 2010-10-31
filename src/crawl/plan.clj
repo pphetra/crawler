@@ -3,7 +3,7 @@
 
 (defn connect-db []
   (mongo!
-   :db "crawl"))
+   :db "medicare"))
 
 (defn insert-plan [
 		   id               ;; H3924-045-0
@@ -35,6 +35,11 @@
 		  :benefit-detail [] })
 	true)
       false)))
+
+(defn mark-completed [plan]
+  (update! :plans
+	   {:_id plan}
+	   {:$set {:process_detail true}}))
 
 (def benefit-type {
 		   "Premium and Other Important Information"	1
@@ -87,4 +92,39 @@
 
 	    
 	       
-		   
+(defn un-process-plans []
+  (fetch :plans :where {:process_detail false}))
+
+(defn plan-sql [plan]
+  (format "insert into plan (contract_h_name, plan_name, segment, contract_name, plan_name_long, plan_type, cover_drugs, fips) values ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')"
+	  (:contract_h_name plan)
+	  (:plan_name plan)
+	  (:segment plan)
+	  (:contract_name plan)
+	  (:plan_name_long plan)
+	  (:play_type plan)
+	  (:cover_drugs plan)
+	  (:fips plan)))
+
+(defn benefit-sql [plan]
+  (let [contract_h_name (:contract_h_name plan)
+	plan_name (:plan_name plan)
+	segment (:segment plan)
+	fips (:fips plan)]
+    (map (fn [benefit] (format "insert into benefit (contract_h_name, plan_name, segment, categoryid, categoryname, benefit_stat, fromfips) values ('%s', '%s', '%s', '%s', '%s' '%s', '%s')"
+			       contract_h_name
+			       plan_name
+			       segment
+			       (:cat_id benefit)
+			       (:name benefit)
+			       (:value benefit)
+			       fips)) (:benefit-detail plan))))
+
+(defn sql [plan]
+  (let [psql (plan-sql plan)
+	bsqls (benefit-sql plan)]
+    (concat [psql] bsqls)))
+
+(defn dump-sql []
+  (let [plans (fetch :plans)]
+    (map sql plans)))

@@ -1,4 +1,5 @@
 (ns crawl.core
+  (:use crawl.plan somnium.congomongo)
   (:import (org.openqa.selenium By)
      (java.io File)
      (org.openqa.selenium WebDriver NoSuchElementException WebDriverException)
@@ -92,26 +93,18 @@
 	(recur))
       true)))
 
-(defn fetch [code]
-  (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
-  (send-key (by-css-selector "div#zip-code-field > input") code)
-  (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]")))
-  
-(defn run []
-  (new-driver)
-  (go "https://www.medicare.gov/find-a-plan/questions/home.aspx")
-  (send-key (by-css-selector "div#zip-code-field > input") "17331")
-  (click (by-css-selector "input[type=submit][alternatetext=\"Find Plans\"]"))
-  (Thread/sleep 1000)
-  (wait-for-loading)
-  (Thread/sleep 1000)
-  (wait-for-display (find-element (by-css-selector "div.SplitCountyModalPopup")))
-  (click-labels "YORK" *driver*)
-  (click (by-css-selector "input[type=submit][value=Continue]"))
-  (Thread/sleep 1000)
-  (wait-for-loading)
-  )
-
+(defn wait-for-element [by millisec]
+  (let [start (System/currentTimeMillis)
+	end (+ start millisec)]
+    (loop []
+      (Thread/sleep 1000)
+      (if (> (System/currentTimeMillis) end)
+	false
+	(let [elm (try (find-element by)
+		       (catch NoSuchElementException e nil))]
+	  (if (nil? elm)
+	    (recur)
+	    elm))))))
 
 (defn start []
   (.get *driver* "https://www.medicare.gov/find-a-plan/questions/home.aspx"))
@@ -171,6 +164,20 @@
 	  text (second plan)]
       (println (format "%s --> %s\n" type text)))))
 
+(defn save-plans [zipCode]
+  (map (fn [plan]
+	     (let [type (first plan)
+		   text (second plan)
+		   matches (re-matches #"(.*)\(((\w{5})-(\d{3})-(\d))\).*" text)
+		   name (nth matches 2)
+		   desc (.trim (nth matches 1))]
+	       (println type text)
+	       (println matches)
+	       (if (insert-plan name text desc type (if (= type "ma") true false) zipCode)
+		 name
+		 nil)))
+       (extract-all-plan)))
+
 (def *test-mdp* '("FreedomBlue PPO HD Rx (PPO) (H3916-025-0)" "Advantra Elite (PPO) (H5522-008-0)" "Geisinger Gold Classic 3 $0 Deductible Rx (HMO) (H3954-100-0)" "SeniorBlue - Option 2 (PPO) (H3923-013-0)" "Bravo Classic (HMO) (H3949-002-0)" "UnitedHealthcare MedicareComplete (HMO) (H3920-001-0)" "Bravo Achieve (HMO SNP) (H3949-024-0) (SNP)" "SecureHorizons MedicareComplete Choice (PPO) (H3921-001-0)" "Advantra Silver (PPO) (H5522-004-0)" "Evercare Plan IP (PPO SNP) (H3912-001-0) (SNP)"))
 
 (def *test-ma* '("Geisinger Gold Classic 3 (HMO) (H3954-098-0)" "Geisinger Gold Preferred 1 (PPO) (H3924-021-0)" "HumanaChoice R5826-062 (Regional PPO) (R5826-062-0)" "Geisinger Gold Preferred 2 (PPO) (H3924-045-0)" "Geisinger Gold Reserve (MSA) (H8468-001-0)" "UnitedHealthcare MedicareComplete Essential (HMO) (H3920-007-0)" "FreedomBlue PPO Value (PPO) (H3916-012-0)" "Humana Gold Choice H8145-055 (PFFS) (H8145-055-0)" "Today's Options Premier 800 (PFFS) (H2816-008-0)" "Today's Options Advantage 900 (PPO) (H2775-095-0)"))
@@ -212,17 +219,54 @@
     (println (second pair))
     (println "--------------------------------------")))
 
-(defn run2 []
-  (start)
-  (enter-zip-code "13331")
+(defn save-benefits [plan]
+  (doseq [pair (extract-benefits)]
+    (insert-plan-detail plan (first pair) (second pair))))
 
-  (answer-i-dont-know)
+(defn wait-and-do [by timeout msg fn]
+  (if-not (wait-for-element by timeout)
+    (throw (Exception. msg))
+    (fn)))
 
-  (answer-no-drug)
-  (answer-no-phamacies)
-  
-  (click-continue)
-  (dump-plans)
-  (go-plan "....")
-  (dump-benefits)
-)
+(defn extract-and-save-plan-detail [zipCode]
+  (let [plans (remove nil? (save-plans zipCode))]
+    (println plans)
+    (doseq [plan plans]
+      (println (format "process plan %s" plan))
+      (go-plan plan)
+      (save-benefits plan)
+      (mark-completed plan))))
+
+(defn run [zipCode]
+  (let [conn (make-connection :medicare)]
+    (with-mongo conn
+      (start)
+      (enter-zip-code zipCode)
+      (Thread/sleep 1000)
+      (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
+		   20000
+		   "timeout when wait for step 1 of 4"
+		   answer-i-dont-know)
+      
+      (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
+		   20000
+		   "timeout when wait for step 2 of 4"
+		   answer-no-drug)
+      
+      (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
+		   20000
+		   "timeout when wait for step 3 of 4"
+		   answer-no-phamacies)
+      
+      (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
+		   20000
+		   "timeout when wait for step 4 of 4"
+		   click-continue)
+      
+      (wait-and-do (by-css-selector "div.planGroupResultsPanel")
+		   60000
+		   "timeout when wait for plan result"
+		   dump-plans)
+      
+      (extract-and-save-plan-detail zipCode))
+    (close-connection conn)))
