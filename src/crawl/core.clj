@@ -113,21 +113,6 @@
   )
 
 
-(defn run2 []
-  (start)
-  (enter-zip-code "13331")
-
-  (answer-i-dont-know)
-
-  (answer-no-drug)
-  (answer-no-phamacies)
-  
-  (click-continue)
-  (dump-plans)
-  (go-plan "....")
-  (dump-benefits)
-)
-
 (defn start []
   (.get *driver* "https://www.medicare.gov/find-a-plan/questions/home.aspx"))
 
@@ -155,12 +140,6 @@
 
 (defn click-continue []
   (click (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")))
-
-(defn dump-plans []
-  (doseq [plan (extract-all-plan)]
-    (let [type (first plan)
-	  text (second plan)]
-      (println (format "%s --> %s\n" type text)))))
       
 (defn extract-plan [div type]
   (let [root (.findElement *driver* (by-css-selector div))
@@ -186,24 +165,21 @@
 	ma (extract-ma)]
     (concat pdp mapd ma)))
 	
-  
-(defstruct plan_county
-  :contract_h_name ;; contract id - 5 character. string starting with a letter and then 4 numbers X#### 
-  :plan_name ;; plan "name" which is the 3 digit
-  :segment ;; segment id - single didgit, assume zero if not specified
-  :contract_name ;; 
-  :plan_name_long
-  :plan_type ;; which of the 3 categorys the plan is listed under (PDP, med and drug, medical only)
-  :cover_drugs ;; yes/no
-  :fips 
-  :load_event_id
-  :plan_detail_url)
+(defn dump-plans []
+  (doseq [plan (extract-all-plan)]
+    (let [type (first plan)
+	  text (second plan)]
+      (println (format "%s --> %s\n" type text)))))
 
-(def *test-mdp* ("FreedomBlue PPO HD Rx (PPO) (H3916-025-0)" "Advantra Elite (PPO) (H5522-008-0)" "Geisinger Gold Classic 3 $0 Deductible Rx (HMO) (H3954-100-0)" "SeniorBlue - Option 2 (PPO) (H3923-013-0)" "Bravo Classic (HMO) (H3949-002-0)" "UnitedHealthcare MedicareComplete (HMO) (H3920-001-0)" "Bravo Achieve (HMO SNP) (H3949-024-0) (SNP)" "SecureHorizons MedicareComplete Choice (PPO) (H3921-001-0)" "Advantra Silver (PPO) (H5522-004-0)" "Evercare Plan IP (PPO SNP) (H3912-001-0) (SNP)"))
+(def *test-mdp* '("FreedomBlue PPO HD Rx (PPO) (H3916-025-0)" "Advantra Elite (PPO) (H5522-008-0)" "Geisinger Gold Classic 3 $0 Deductible Rx (HMO) (H3954-100-0)" "SeniorBlue - Option 2 (PPO) (H3923-013-0)" "Bravo Classic (HMO) (H3949-002-0)" "UnitedHealthcare MedicareComplete (HMO) (H3920-001-0)" "Bravo Achieve (HMO SNP) (H3949-024-0) (SNP)" "SecureHorizons MedicareComplete Choice (PPO) (H3921-001-0)" "Advantra Silver (PPO) (H5522-004-0)" "Evercare Plan IP (PPO SNP) (H3912-001-0) (SNP)"))
 
-(def *test-ma* ("Geisinger Gold Classic 3 (HMO) (H3954-098-0)" "Geisinger Gold Preferred 1 (PPO) (H3924-021-0)" "HumanaChoice R5826-062 (Regional PPO) (R5826-062-0)" "Geisinger Gold Preferred 2 (PPO) (H3924-045-0)" "Geisinger Gold Reserve (MSA) (H8468-001-0)" "UnitedHealthcare MedicareComplete Essential (HMO) (H3920-007-0)" "FreedomBlue PPO Value (PPO) (H3916-012-0)" "Humana Gold Choice H8145-055 (PFFS) (H8145-055-0)" "Today's Options Premier 800 (PFFS) (H2816-008-0)" "Today's Options Advantage 900 (PPO) (H2775-095-0)"))
+(def *test-ma* '("Geisinger Gold Classic 3 (HMO) (H3954-098-0)" "Geisinger Gold Preferred 1 (PPO) (H3924-021-0)" "HumanaChoice R5826-062 (Regional PPO) (R5826-062-0)" "Geisinger Gold Preferred 2 (PPO) (H3924-045-0)" "Geisinger Gold Reserve (MSA) (H8468-001-0)" "UnitedHealthcare MedicareComplete Essential (HMO) (H3920-007-0)" "FreedomBlue PPO Value (PPO) (H3916-012-0)" "Humana Gold Choice H8145-055 (PFFS) (H8145-055-0)" "Today's Options Premier 800 (PFFS) (H2816-008-0)" "Today's Options Advantage 900 (PPO) (H2775-095-0)"))
 
-(def *test-pdp* ("Humana Walmart-Preferred Rx Plan (PDP) (S5884-104-0)" "AARP MedicareRx Preferred (PDP) (S5820-005-0)" "Humana Enhanced (PDP) (S5884-005-0)" "MedicareRx Rewards Plus (PDP) (S5960-144-0)" "First Health Part D Premier (PDP) (S5768-009-0)" "BlueRx Plus (PDP) (S5593-002-0)" "Health Net Orange Option 1 (PDP) (S5678-018-0)" "AmeriHealth Advantage (PDP) (S2770-001-0)" "CIGNA Medicare Rx Plan One (PDP) (S5617-215-0)" "Community CCRx Basic (PDP) (S5803-075-0)"))
+(def *test-pdp* '("Humana Walmart-Preferred Rx Plan (PDP) (S5884-104-0)" "AARP MedicareRx Preferred (PDP) (S5820-005-0)" "Humana Enhanced (PDP) (S5884-005-0)" "MedicareRx Rewards Plus (PDP) (S5960-144-0)" "First Health Part D Premier (PDP) (S5768-009-0)" "BlueRx Plus (PDP) (S5593-002-0)" "Health Net Orange Option 1 (PDP) (S5678-018-0)" "AmeriHealth Advantage (PDP) (S2770-001-0)" "CIGNA Medicare Rx Plan One (PDP) (S5617-215-0)" "Community CCRx Basic (PDP) (S5803-075-0)"))
+
+(defn go-more-plan-detail [contract plan segment]
+  (let [url (format "http://www.medicare.gov/find-a-plan/staticpages/plan-details-benefits-popup.aspx?cntrctid=%s&plnid=%s&sgmntid=%s&ctgry=" contract plan segment)]
+    (.get *driver* url)))
 
 (defn go-plan [code]
   (let [ary (.split code "-")
@@ -221,10 +197,6 @@
 	elm (.findElement *driver* css)]
     (.click elm)))
 
-(defn go-more-plan-detail [contract plan segment]
-  (let [url (format "http://www.medicare.gov/find-a-plan/staticpages/plan-details-benefits-popup.aspx?cntrctid=%s&plnid=%s&sgmntid=%s&ctgry=" contract plan segment)]
-    (.get *driver* url)))
-
 (defn extract-benefits []
   (let [elms (.findElements *driver* (by-css-selector "div.benefitsCategory"))]
     (map (fn [elm]
@@ -239,3 +211,18 @@
     (println "======================================")
     (println (second pair))
     (println "--------------------------------------")))
+
+(defn run2 []
+  (start)
+  (enter-zip-code "13331")
+
+  (answer-i-dont-know)
+
+  (answer-no-drug)
+  (answer-no-phamacies)
+  
+  (click-continue)
+  (dump-plans)
+  (go-plan "....")
+  (dump-benefits)
+)
