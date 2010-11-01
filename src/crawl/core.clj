@@ -237,36 +237,69 @@
       (save-benefits plan)
       (mark-completed plan))))
 
+(defn is-process-ajax? []
+  (js "return document.getElementById('ProcessingIndicatorBoxPlanList').getBoundingClientRect().height"))
+
+(defn wait-for-view50-process [millisec]
+  (let [start (System/currentTimeMillis)
+	end (+ start millisec)]
+    (loop []
+      (Thread/sleep 1000)
+      (if (> (System/currentTimeMillis) end)
+	false
+	(let [ret (is-process-ajax?)]
+	  (if (> ret 0)
+	    (recur)
+	    true))))))
+
+(defn expand-all-plan []
+  (loop []
+    (let [elm (try (find-element (by-css-selector "a.viewPlan"))
+		   (catch NoSuchElementException e nil))]
+      (if (nil? elm)
+	true
+	(do
+	  (println (.getText elm))
+	  (.click elm)
+	  (wait-for-view50-process 180000)
+	  (Thread/sleep 2000)
+	  (recur))))))
+      
+
 (defn run [zipCode]
   (let [conn (make-connection :medicare)]
     (with-mongo conn
       (start)
+      (Thread/sleep 1000) ;; need when using disable-image profile.
       (enter-zip-code zipCode)
       (Thread/sleep 1000)
       (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
-		   20000
+		   60000
 		   "timeout when wait for step 1 of 4"
 		   answer-i-dont-know)
       
       (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
-		   20000
+		   60000
 		   "timeout when wait for step 2 of 4"
 		   answer-no-drug)
       
       (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
-		   20000
+		   60000
 		   "timeout when wait for step 3 of 4"
 		   answer-no-phamacies)
       
       (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
-		   20000
+		   60000
 		   "timeout when wait for step 4 of 4"
 		   click-continue)
       
       (wait-and-do (by-css-selector "div.planGroupResultsPanel")
-		   60000
+		   180000
 		   "timeout when wait for plan result"
 		   dump-plans)
+
+      ;; uncomment this if you want all plans
+      (expand-all-plan)
       
       (extract-and-save-plan-detail zipCode))
     (close-connection conn)))
