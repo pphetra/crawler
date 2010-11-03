@@ -252,20 +252,102 @@
 	    (recur)
 	    true))))))
 
-(defn expand-all-plan []
-  (loop []
-    (let [elm (try (find-element (by-css-selector "a.viewPlan"))
-		   (catch NoSuchElementException e nil))]
-      (if (nil? elm)
-	true
-	(do
-	  (println (.getText elm))
-	  (.click elm)
-	  (wait-for-view50-process 180000)
-	  (Thread/sleep 2000)
-	  (recur))))))
-      
+(defn find-view-plan [type]
+  (let [cls (format "div#%sContentWrapper" type)]
+    (try
+      (do
+	(.findElement (find-element (by-css-selector cls)) (by-css-selector "a.viewPlan"))
+	type)
+      (catch NoSuchElementException e nil))))
 
+(defn find-view-plan-element [type]
+  (let [cls (format "div#%sContentWrapper" type)]
+    (try
+      (.findElement (find-element (by-css-selector cls)) (by-css-selector "a.viewPlan"))
+      (catch NoSuchElementException e nil))))
+
+
+(defn expand-all-plan []
+  (let [remains (remove nil? (map find-view-plan ["pdp", "mapd" "ma"]))]
+    (loop [types remains]
+      (if-not (empty? types)
+	(let [type (first types)
+	      elm (find-view-plan-element type)]
+	  (if (nil? elm)
+	    true
+	    (do
+	      (println type)
+	      (.click elm)
+	      (if-not (wait-for-view50-process 300000)
+		(throw (Exception. "Timeout while waiting for expand all plans")))
+	      (Thread/sleep 10000)
+	      (recur (rest types)))))))))
+      
+(defn extract-plan-by-fip [fip]
+  (let [zipCode (second fip)
+	fipCode (first fip)]
+    (start)
+    (Thread/sleep 1000) ;; need when using disable-image profile.
+    (enter-zip-code zipCode)
+    (Thread/sleep 1000)
+    (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
+		 60000
+		 "timeout when wait for step 1 of 4"
+		 answer-i-dont-know)
+      
+    (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
+		 60000
+		 "timeout when wait for step 2 of 4"
+		 answer-no-drug)
+      
+    (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
+		 60000
+		 "timeout when wait for step 3 of 4"
+		 answer-no-phamacies)
+      
+    (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
+		 60000
+		 "timeout when wait for step 4 of 4"
+		 click-continue)
+      
+    (wait-and-do (by-css-selector "div.planGroupResultsPanel")
+		 180000
+		 "timeout when wait for plan result"
+		 (fn [] true))
+
+    (save-plans fipCode)
+    ))
+  
+(defn goto-plan-result []
+  (start)
+  (Thread/sleep 1000) ;; need when using disable-image profile.
+  (enter-zip-code "13331")
+  (Thread/sleep 1000)
+  (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
+	       60000
+	       "timeout when wait for step 1 of 4"
+	       answer-i-dont-know)
+      
+  (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
+	       60000
+	       "timeout when wait for step 2 of 4"
+	       answer-no-drug)
+      
+  (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
+	       60000
+	       "timeout when wait for step 3 of 4"
+	       answer-no-phamacies)
+      
+  (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
+	       60000
+	       "timeout when wait for step 4 of 4"
+	       click-continue)
+  
+  (wait-and-do (by-css-selector "div.planGroupResultsPanel")
+	       180000
+	       "timeout when wait for plan result"
+	       (fn [] true)))
+  
 (defn run [zipCode]
   (let [conn (make-connection :medicare)]
     (with-mongo conn
@@ -299,7 +381,7 @@
 		   dump-plans)
 
       ;; uncomment this if you want all plans
-      (expand-all-plan)
+      ;;(expand-all-plan)
       
       (extract-and-save-plan-detail zipCode))
     (close-connection conn)))
