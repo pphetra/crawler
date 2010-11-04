@@ -1,5 +1,5 @@
 (ns crawl.main
-  (:use crawl.core crawl.plan somnium.congomongo)
+  (:use crawl.core crawl.plan crawl.data somnium.congomongo)
   (:import
    (java.util.concurrent LinkedBlockingQueue)
    (org.openqa.selenium.chrome ChromeDriver)))
@@ -33,3 +33,7 @@
 	  (go-plan plan)
 	  (save-benefits plan)
 	  (mark-completed plan)))))))
+
+(defn queue-all-fips []
+  (doseq [fip *fips-zips*]
+    (.put *fips-queue* fip)))

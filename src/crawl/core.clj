@@ -280,7 +280,7 @@
 	      (.click elm)
 	      (if-not (wait-for-view50-process 300000)
 		(throw (Exception. "Timeout while waiting for expand all plans")))
-	      (Thread/sleep 10000)
+	      (Thread/sleep 2000)
 	      (recur (rest types)))))))))
       
 (defn extract-plan-by-fip [fip]
