@@ -37,3 +37,7 @@
 (defn queue-all-fips []
   (doseq [fip *fips-zips*]
     (.put *fips-queue* fip)))
+
+(defn reset-db []
+  (mongo! :db "medicare")
+  (destroy! :plans {}))
