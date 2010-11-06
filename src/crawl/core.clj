@@ -171,8 +171,6 @@
 		   matches (re-matches #"(.*)\(((\w{5})-(\d{3})-(\d))\).*" text)
 		   name (nth matches 2)
 		   desc (.trim (nth matches 1))]
-	       (println type text)
-	       (println matches)
 	       (if (insert-plan name text desc type (if (= type "ma") true false) fipCode)
 		 name
 		 nil)))
@@ -287,7 +285,7 @@
   (let [zipCode (second fip)
 	fipCode (first fip)]
     (start)
-    (stat-begin-process (format "%s" fip) "1 of 4")
+;;    (stat-begin-process (format "%s" fip) "1 of 4")
     (Thread/sleep 1000) ;; need when using disable-image profile.
     (enter-zip-code zipCode)
     (Thread/sleep 1000)
@@ -296,65 +294,65 @@
 		 "timeout when wait for step 1 of 4"
 		 answer-i-dont-know)
 
-    (stat-update-process "2 of 4")
+;;    (stat-update-process "2 of 4")
     (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
 		 60000
 		 "timeout when wait for step 2 of 4"
 		 answer-no-drug)
 
-    (stat-update-process "3 of 4")
+;;    (stat-update-process "3 of 4")
     (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
 		 60000
 		 "timeout when wait for step 3 of 4"
 		 answer-no-phamacies)
 
-    (stat-update-process "4 of 4")
+;;    (stat-update-process "4 of 4")
     (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
 		 60000
 		 "timeout when wait for step 4 of 4"
 		 click-continue)
 
-    (stat-update-process "continue")
+;;    (stat-update-process "continue")
     (wait-and-do (by-css-selector "div.planGroupResultsPanel")
 		 180000
 		 "timeout when wait for plan result"
 		 (fn [] true))
 
     (save-plans fipCode)
-    (stat-finish-process)
+;;    (stat-finish-process)
     ))
   
 (defn goto-plan-result []
   (start)
   (Thread/sleep 1000) ;; need when using disable-image profile.
   (enter-zip-code "13331")
-  (stat-begin-process "goto-plan-result" "1 of 4")
+  ;;(stat-begin-process "goto-plan-result" "1 of 4")
 
   (Thread/sleep 1000)
   (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
 	       180000
 	       "timeout when wait for step 1 of 4"
 	       answer-i-dont-know)
-  (stat-update-process "2 of 4")
+  ;;(stat-update-process "2 of 4")
   (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
 	       60000
 	       "timeout when wait for step 2 of 4"
 	       answer-no-drug)
-  (stat-update-process "3 of 4")    
+  ;;(stat-update-process "3 of 4")    
   (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
 	       60000
 	       "timeout when wait for step 3 of 4"
 	       answer-no-phamacies)
-  (stat-update-process "4 of 4")    
+  ;;(stat-update-process "4 of 4")    
   (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
 	       60000
 	       "timeout when wait for step 4 of 4"
 	       click-continue)
-  (stat-update-process "continue")
+  ;;(stat-update-process "continue")
   (wait-and-do (by-css-selector "div.planGroupResultsPanel")
 	       180000
 	       "timeout when wait for plan result"
-	       (fn [] (stat-finish-process))))
+	       (fn [] true)))
   
 (defn run [zipCode]
   (let [conn (make-connection :medicare)]

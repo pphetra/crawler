@@ -35,7 +35,7 @@
       (binding [*driver* (ChromeDriver.)
 		*tid* (.toString (rand))]
 	(mongo! :db "medicare" :host "127.0.0.1")
-	(stat-new-thread "zip")
+	;;(stat-new-thread "zip")
 	(doseq [fip (repeatedly #(.take  *fips-queue*))]
 	  (try (doseq [plan (remove nil? (extract-plan-by-fip fip))]
 		 (.put *plan-queue* plan))
@@ -50,15 +50,15 @@
       (binding [*driver* (ChromeDriver.)
 		*tid* (.toString (rand))]
 	(mongo! :db "medicare" :host "127.0.0.1")
-	(stat-new-thread "plan")
+	;;(stat-new-thread "plan")
 	(goto-plan-result)
 	(doseq [plan (repeatedly #(.take *plan-queue*))]
-	  (stat-begin-process plan "go-plan")
+	  ;;(stat-begin-process plan "go-plan")
 	  (go-plan plan)
-	  (stat-update-process "save-benefit")
+	  ;;(stat-update-process "save-benefit")
 	  (save-benefits plan)
 	  (mark-completed plan)
-	  (stat-finish-process)))))))
+	  ))))))
 
 (defn monitor-start []
   (start-server))
