@@ -93,3 +93,7 @@
 		  (instance? StaleElementReferenceException (:e item)))
 		*error-fips-queue*)]
     (map :fip stale)))
+
+(defn queue-unprocess-from-stale []
+  (doseq [stale (get-stale-error)]
+    (.put *fips-queue* stale)))
