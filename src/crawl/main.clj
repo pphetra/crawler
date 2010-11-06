@@ -2,7 +2,8 @@
   (:use crawl.core crawl.plan crawl.data somnium.congomongo crawl.stat crawl.server)
   (:import
    (java.util.concurrent LinkedBlockingQueue)
-   (org.openqa.selenium.chrome ChromeDriver)))
+   (org.openqa.selenium.chrome ChromeDriver)
+   (org.openqa.selenium.StaleElementReferenceException)))
 
 (def *fips-queue* (LinkedBlockingQueue.))
 
@@ -80,7 +81,15 @@
 	(if-not (.contains processed-fip fip)
 	  (.put *fips-queue* fip-zip))))))
 
+
 (defn queue-unprocess-plan []
   (mongo! :db "medicare" :host "127.0.0.1")
   (doseq [plan (get-unprocess-plan)]
     (.put *plan-queue* plan)))
+
+(defn get-stale-error []
+  (let [stale
+	(filter (fn [item]
+		  (instance? StaleElementReferenceException (:e item)))
+		*error-fips-queue*)]
+    (map :fip stale)))
