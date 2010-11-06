@@ -133,3 +133,17 @@
 (defn dump-sql []
   (let [plans (fetch :plans)]
     (map sql plans)))
+
+
+(defn get-extracted-fip []
+  (let [fip-set (java.util.HashSet.)]
+    (doseq [code (map :fips (fetch :plans))]
+      (.add fip-set code))
+    fip-set))
+
+(defn get-unprocess-plan []
+  (let [plans (fetch :plans)
+	no-detail-list (remove
+			(fn [plan] (not (nil? (:process-detail plan))))
+			plans)]
+    (map :_id no-detail-list)))
