@@ -41,3 +41,17 @@
 (defn reset-db []
   (mongo! :db "medicare")
   (destroy! :plans {}))
+
+
+(defn queue-unprocess-fips []
+  (mongo! :db "medicare")
+  (let [processed-fip (get-extracted-fip)]
+    (doseq [fip-zip *fips-zips*]
+      (let [fip (first fip-zip)]
+	(if-not (.contains processed-fip fip)
+	  (.put *fips-queue* fip))))))
+
+(defn queue-unprocess-plan []
+  (mongo! :db "medicare")
+  (doseq [plan (get-unprocess-plan)]
+    (.put *plan-queue* plan)))
