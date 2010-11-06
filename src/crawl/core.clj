@@ -1,5 +1,5 @@
 (ns crawl.core
-  (:use crawl.plan somnium.congomongo)
+  (:use crawl.plan somnium.congomongo crawl.stat)
   (:import (org.openqa.selenium By)
      (java.io File)
      (org.openqa.selenium WebDriver NoSuchElementException WebDriverException)
@@ -97,7 +97,7 @@
   (let [start (System/currentTimeMillis)
 	end (+ start millisec)]
     (loop []
-      (Thread/sleep 1000)
+      (Thread/sleep 2000)
       (if (> (System/currentTimeMillis) end)
 	false
 	(let [elm (try (find-element by)
@@ -164,7 +164,7 @@
 	  text (second plan)]
       (println (format "%s --> %s\n" type text)))))
 
-(defn save-plans [zipCode]
+(defn save-plans [fipCode]
   (map (fn [plan]
 	     (let [type (first plan)
 		   text (second plan)
@@ -173,7 +173,7 @@
 		   desc (.trim (nth matches 1))]
 	       (println type text)
 	       (println matches)
-	       (if (insert-plan name text desc type (if (= type "ma") true false) zipCode)
+	       (if (insert-plan name text desc type (if (= type "ma") true false) fipCode)
 		 name
 		 nil)))
        (extract-all-plan)))
@@ -287,6 +287,7 @@
   (let [zipCode (second fip)
 	fipCode (first fip)]
     (start)
+    (stat-begin-process (format "%s" fip) "1 of 4")
     (Thread/sleep 1000) ;; need when using disable-image profile.
     (enter-zip-code zipCode)
     (Thread/sleep 1000)
@@ -294,59 +295,66 @@
 		 60000
 		 "timeout when wait for step 1 of 4"
 		 answer-i-dont-know)
-      
+
+    (stat-update-process "2 of 4")
     (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
 		 60000
 		 "timeout when wait for step 2 of 4"
 		 answer-no-drug)
-      
+
+    (stat-update-process "3 of 4")
     (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
 		 60000
 		 "timeout when wait for step 3 of 4"
 		 answer-no-phamacies)
-      
+
+    (stat-update-process "4 of 4")
     (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
 		 60000
 		 "timeout when wait for step 4 of 4"
 		 click-continue)
-      
+
+    (stat-update-process "continue")
     (wait-and-do (by-css-selector "div.planGroupResultsPanel")
 		 180000
 		 "timeout when wait for plan result"
 		 (fn [] true))
 
     (save-plans fipCode)
+    (stat-finish-process)
     ))
   
 (defn goto-plan-result []
   (start)
   (Thread/sleep 1000) ;; need when using disable-image profile.
   (enter-zip-code "13331")
+  (stat-begin-process "goto-plan-result" "1 of 4")
+
   (Thread/sleep 1000)
   (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
-	       60000
+	       180000
 	       "timeout when wait for step 1 of 4"
 	       answer-i-dont-know)
-      
+  (stat-update-process "2 of 4")
   (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
 	       60000
 	       "timeout when wait for step 2 of 4"
 	       answer-no-drug)
-      
+  (stat-update-process "3 of 4")    
   (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
 	       60000
 	       "timeout when wait for step 3 of 4"
 	       answer-no-phamacies)
-      
+  (stat-update-process "4 of 4")    
   (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
 	       60000
 	       "timeout when wait for step 4 of 4"
 	       click-continue)
-  
+  (stat-update-process "continue")
   (wait-and-do (by-css-selector "div.planGroupResultsPanel")
 	       180000
 	       "timeout when wait for plan result"
-	       (fn [] true)))
+	       (fn [] (stat-finish-process))))
   
 (defn run [zipCode]
   (let [conn (make-connection :medicare)]
