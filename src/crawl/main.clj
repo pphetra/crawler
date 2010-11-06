@@ -34,7 +34,7 @@
     (fn []
       (binding [*driver* (ChromeDriver.)
 		*tid* (.toString (rand))]
-	(mongo! :db "medicare")
+	(mongo! :db "medicare" :host "127.0.0.1")
 	(stat-new-thread "zip")
 	(doseq [fip (repeatedly #(.take  *fips-queue*))]
 	  (try (doseq [plan (remove nil? (extract-plan-by-fip fip))]
@@ -49,7 +49,7 @@
     (fn []
       (binding [*driver* (ChromeDriver.)
 		*tid* (.toString (rand))]
-	(mongo! :db "medicare")
+	(mongo! :db "medicare" :host "127.0.0.1")
 	(stat-new-thread "plan")
 	(goto-plan-result)
 	(doseq [plan (repeatedly #(.take *plan-queue*))]
@@ -68,12 +68,12 @@
     (.put *fips-queue* fip)))
 
 (defn reset-db []
-  (mongo! :db "medicare")
+  (mongo! :db "medicare" :host "127.0.0.1")
   (destroy! :plans {}))
 
 
 (defn queue-unprocess-fips []
-  (mongo! :db "medicare")
+  (mongo! :db "medicare" :host "127.0.0.1")
   (let [processed-fip (get-extracted-fip)]
     (doseq [fip-zip *fips-zips*]
       (let [fip (first fip-zip)]
@@ -81,6 +81,6 @@
 	  (.put *fips-queue* fip-zip))))))
 
 (defn queue-unprocess-plan []
-  (mongo! :db "medicare")
+  (mongo! :db "medicare" :host "127.0.0.1")
   (doseq [plan (get-unprocess-plan)]
     (.put *plan-queue* plan)))
