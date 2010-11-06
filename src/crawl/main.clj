@@ -3,7 +3,7 @@
   (:import
    (java.util.concurrent LinkedBlockingQueue)
    (org.openqa.selenium.chrome ChromeDriver)
-   (org.openqa.selenium.StaleElementReferenceException)))
+   (org.openqa.selenium StaleElementReferenceException)))
 
 (def *fips-queue* (LinkedBlockingQueue.))
 
