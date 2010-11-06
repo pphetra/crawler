@@ -288,27 +288,27 @@
 ;;    (stat-begin-process (format "%s" fip) "1 of 4")
     (Thread/sleep 1000) ;; need when using disable-image profile.
     (enter-zip-code zipCode)
-    (Thread/sleep 1000)
+    (Thread/sleep 2000)
     (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
-		 30000
+		 10000
 		 "timeout when wait for step 1 of 4"
 		 answer-i-dont-know)
 
 ;;    (stat-update-process "2 of 4")
     (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
-		 30000
+		 10000
 		 "timeout when wait for step 2 of 4"
 		 answer-no-drug)
 
 ;;    (stat-update-process "3 of 4")
     (wait-and-do (by-css-selector "a#lnkDontAddDrugs")
-		 30000
+		 10000
 		 "timeout when wait for step 3 of 4"
 		 answer-no-phamacies)
 
 ;;    (stat-update-process "4 of 4")
     (wait-and-do (by-css-selector "input[type=button][value=\"Continue To Plan Results\"]")
-		 30000
+		 10000
 		 "timeout when wait for step 4 of 4"
 		 click-continue)
 
