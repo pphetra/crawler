@@ -49,7 +49,7 @@
     (doseq [fip-zip *fips-zips*]
       (let [fip (first fip-zip)]
 	(if-not (.contains processed-fip fip)
-	  (.put *fips-queue* fip))))))
+	  (.put *fips-queue* fip-zip))))))
 
 (defn queue-unprocess-plan []
   (mongo! :db "medicare")
