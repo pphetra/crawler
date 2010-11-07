@@ -1,5 +1,11 @@
 (ns crawl.main
-  (:use crawl.core crawl.plan crawl.data somnium.congomongo crawl.stat crawl.server)
+  (:use crawl.core
+	crawl.plan
+	crawl.data
+	somnium.congomongo
+	crawl.stat
+	crawl.server
+	clojure.contrib.duck-streams)
   (:import
    (java.util.concurrent LinkedBlockingQueue)
    (org.openqa.selenium.chrome ChromeDriver)
@@ -84,8 +90,8 @@
 
 (defn queue-unprocess-plan []
   (mongo! :db "medicare" :host "127.0.0.1")
-  (doseq [plan (get-unprocess-plan)]
-    (.put *plan-queue* plan)))
+  (doseq [plan (fetch :plans :where {:process_detail false})]
+    (.put *plan-queue* (:_id plan))))
 
 (defn get-stale-error []
   (let [stale
@@ -97,3 +103,16 @@
 (defn queue-unprocess-from-stale []
   (doseq [stale (get-stale-error)]
     (.put *fips-queue* stale)))
+
+(defn get-timeout-error []
+  (let [to
+	(filter (fn [item]
+		  (re-find #"timeout" (.getMessage (:e item))))
+		*error-fips-queue*)]
+    (map :fip to)))
+
+(defn dump-sql-to-file [file]
+  (mongo! :db "medicare" :host "127.0.0.1")
+  (doseq [sqlall (dump-sql)]
+    (doseq [stmt sqlall]
+      (append-spit file stmt))))

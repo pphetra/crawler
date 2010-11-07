@@ -115,8 +115,10 @@
   (let [contract_h_name (:contract_h_name plan)
 	plan_name (:plan_name plan)
 	segment (:segment plan)
-	fips (:fips plan)]
-    (map (fn [benefit] (format "insert into benefit (contract_h_name, plan_name, segment, categoryid, categoryname, benefit_stat, fromfips) values ('%s', '%s', '%s', '%s', '%s' '%s', '%s')"
+	fips (:fips plan)
+	lid "11-07-2010"]
+    (map (fn [benefit] (format "INSERT INTO [mds_1_6_r3].[mds_schema].[MDS_WC_TMP_MOC_BENEFIT] ([LOAD_EVENT_ID], [CONTRACT_H_NAME], [PLAN_NAME], [SEGMENT], [CATEGORYID], [CATEGORYNAME], [BENEFIT_STAT], [FROMFIPS]) values ('%s', '%s', '%s', '%s', '%s', '%s' '%s', '%s');\n"
+			       lid
 			       contract_h_name
 			       plan_name
 			       segment
@@ -131,9 +133,8 @@
     (concat [psql] bsqls)))
 
 (defn dump-sql []
-  (let [plans (fetch :plans)]
-    (map sql plans)))
-
+  (let [plans (fetch :plans :where {:process_detail true})]
+    (map benefit-sql plans)))
 
 (defn get-extracted-fip []
   (let [fip-set (java.util.HashSet.)]
