@@ -116,7 +116,7 @@
 	plan_name (:plan_name plan)
 	segment (:segment plan)
 	fips (:fips plan)
-	lid "11-07-2010"]
+	lid (:event-id plan)]
     (map (fn [benefit] (format "INSERT INTO [mds_1_6_r3].[mds_schema].[MDS_WC_TMP_MOC_BENEFIT] ([LOAD_EVENT_ID], [CONTRACT_H_NAME], [PLAN_NAME], [SEGMENT], [CATEGORYID], [CATEGORYNAME], [BENEFIT_STAT], [FROMFIPS]) values ('%s', '%s', '%s', '%s', '%s', '%s' '%s', '%s');\n"
 			       lid
 			       contract_h_name
