@@ -31,6 +31,7 @@
 		  :plan_type plan_type
 		  :cover_drugs cover_drugs
 		  :fips fips
+		  :event-id nil
 		  :process_detail false
 		  :benefit-detail [] })
 	true)
