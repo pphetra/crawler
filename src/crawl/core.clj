@@ -238,6 +238,10 @@
 (defn is-process-ajax? []
   (js "return document.getElementById('ProcessingIndicatorBoxPlanList').getBoundingClientRect().height"))
 
+(defn is-split-county-modal-popup? []
+  (let [ret (js "return $('div.SplitCountyModalPopup').attr('style')")]
+    (nil? (re-find #"display" ret))))
+
 (defn wait-for-view50-process [millisec]
   (let [start (System/currentTimeMillis)
 	end (+ start millisec)]
@@ -280,7 +284,51 @@
 		(throw (Exception. "Timeout while waiting for expand all plans")))
 	      (Thread/sleep 2000)
 	      (recur (rest types)))))))))
-      
+
+(defn wait-county-popup-or-next [millisec popupfn nextfn]
+  (let [start (System/currentTimeMillis)
+	end (+ start millisec)
+	by (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")]
+    (loop []
+      (Thread/sleep 2000)
+      (if (> (System/currentTimeMillis) end)
+	(throw (Exception. "timeout when wait for popup or 1 of 4"))
+	(let [elm (try (find-element by)
+		       (catch NoSuchElementException e nil))]
+	  (if (nil? elm)
+	    (do
+	      (if (is-split-county-modal-popup?)
+		(popupfn)
+		(recur)))
+	    (nextfn)))))))
+
+(defn wait-for-step-1-of-4 []
+  (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
+	       10000
+	       "timeout when wait for step 1 of 4"
+	       answer-i-dont-know))
+
+(defn no-zero-leading [code]
+  (if (= 0 (.indexOf code "0"))
+    (.substring code 1)
+    code))
+
+(defn choose-county-fn [fipCode]
+  (fn []
+    (let [root (.findElement *driver* (by-css-selector "div.SplitCountyModalPopup"))
+	  elms (.findElements root (by-css-selector "input[type=radio]"))
+	  btn  (.findElement root (by-css-selector "input[type=submit]"))
+	  code (no-zero-leading fipCode)]
+      (doseq [elm elms]
+	(let [value (.getAttribute elm "value")]
+	  (if (>= (.indexOf value code) 0)
+	    (do
+	      (.click elm)
+	      (.click btn))))))
+    (wait-for-step-1-of-4)))
+	  
+    
+
 (defn extract-plan-by-fip [fip]
   (let [zipCode (second fip)
 	fipCode (first fip)]
@@ -289,10 +337,8 @@
     (Thread/sleep 1000) ;; need when using disable-image profile.
     (enter-zip-code zipCode)
     (Thread/sleep 2000)
-    (wait-and-do (by-css-selector "label[title=\"I don't know what medicare coverage i have\"]")
-		 10000
-		 "timeout when wait for step 1 of 4"
-		 answer-i-dont-know)
+
+    (wait-county-popup-or-next 30000 (choose-county-fn fipCode) answer-i-dont-know)
 
 ;;    (stat-update-process "2 of 4")
     (wait-and-do (by-css-selector "a[title=\"I don't want to add drugs now\"]")
@@ -318,6 +364,7 @@
 		 "timeout when wait for plan result"
 		 (fn [] true))
 
+    (expand-all-plan)
     (save-plans fipCode)
 ;;    (stat-finish-process)
     ))
