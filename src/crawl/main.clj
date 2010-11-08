@@ -8,7 +8,7 @@
 	clojure.contrib.duck-streams)
   (:import
    (java.util.concurrent LinkedBlockingQueue)
-   (org.openqa.selenium.chrome ChromeDriver)
+   (org.openqa.selenium.chrome ChromeDriver ChromeNotRunningException)
    (org.openqa.selenium StaleElementReferenceException)))
 
 (def *fips-queue* (LinkedBlockingQueue.))
@@ -46,6 +46,8 @@
 	(doseq [fip (repeatedly #(.take  *fips-queue*))]
 	  (try (doseq [plan (remove nil? (extract-plan-by-fip fip))]
 		 (.put *plan-queue* plan))
+	       (catch ChromeNotRunningException ce
+		 (throw ce))
 	       (catch Exception e
 		 (.put *error-fips-queue* {:e e :fip fip})))
 	  (Thread/sleep 1000)))))))
