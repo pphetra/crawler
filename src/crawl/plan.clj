@@ -91,6 +91,14 @@
 				       :value value
 				       :cat_id cat_id}}})))
 
+(defn insert-plan-detail-2 [plan_id key value]
+  (let [cat_id (get benefit-type key)]
+    (update! :plans
+	     {:_id plan_id}
+	     {:$push {:benefit-detail2 {
+				       :name key
+				       :value value
+				       :cat_id cat_id}}})))
 	    
 	       
 (defn un-process-plans []

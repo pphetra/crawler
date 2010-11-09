@@ -202,6 +202,25 @@
 	elm (.findElement *driver* css)]
     (.click elm)))
 
+(defn get-benefits-size []
+  (js "return $('div.benefitsCategory').length"))
+
+(defn extract-benefit-header [idx]
+  (js (format "return $('div.benefitsCategoryHeader')[%s].innerText" idx)))
+
+(defn extract-benefit-html [idx]
+  (js (format "return $('div.benefitsCategoryText')[%s].innerHTML" idx)))
+
+
+(defn extract-benefits-2 []
+  (let [size (get-benefits-size)
+	ary (range 0 size)]
+    (map (fn [idx]
+	   (let [header (extract-benefit-header idx)
+		 html (.trim (extract-benefit-html idx))]
+	     (list header html)))
+	 ary)))
+
 (defn extract-benefits []
   (let [elms (.findElements *driver* (by-css-selector "div.benefitsCategory"))]
     (map (fn [elm]
@@ -220,6 +239,10 @@
 (defn save-benefits [plan]
   (doseq [pair (extract-benefits)]
     (insert-plan-detail plan (first pair) (second pair))))
+
+(defn save-benefits-2 [plan]
+  (doseq [pair (extract-benefits-2)]
+    (insert-plan-detail-2 plan (first pair) (second pair))))
 
 (defn wait-and-do [by timeout msg fn]
   (if-not (wait-for-element by timeout)

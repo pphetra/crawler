@@ -65,7 +65,7 @@
 	  ;;(stat-begin-process plan "go-plan")
 	  (go-plan plan)
 	  ;;(stat-update-process "save-benefit")
-	  (save-benefits plan)
+	  (save-benefits-2 plan)
 	  (mark-completed plan)
 	  ))))))
 
@@ -94,6 +94,12 @@
   (mongo! :db "medicare" :host "127.0.0.1")
   (doseq [plan (fetch :plans :where {:process_detail false})]
     (.put *plan-queue* (:_id plan))))
+
+(defn queue-unprocess-2-plan []
+  (mongo! :db "medicare" :host "127.0.0.1")
+  (doseq [plan (fetch :plans :where {:benefit-detail2 nil})]
+    (.put *plan-queue* (:_id plan))))
+
 
 (defn get-stale-error []
   (let [stale
