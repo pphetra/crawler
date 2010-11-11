@@ -48,7 +48,7 @@ cattable = {
     "End-Stage Renal Disease (ESRD)": 28 }
     
 def fetch(session, contract, plan, segment):
-    cmd = u'wget -O - --no-cookies --header "Cookie: ASP.NET_SessionId=%s" \'http://www.medicare.gov/find-a-plan/staticpages/plan-details-benefits-popup.aspx?cntrctid=%s&plnid=%s&sgmntid=%s&ctgry=\'' % (session, contract, plan, segment)
+    cmd = u'wget -O - -q --no-cookies --header "Cookie: ASP.NET_SessionId=%s" \'http://www.medicare.gov/find-a-plan/staticpages/plan-details-benefits-popup.aspx?cntrctid=%s&plnid=%s&sgmntid=%s&ctgry=\'' % (session, contract, plan, segment)
     s = os.popen (cmd)
     content = s.read()
     return content
