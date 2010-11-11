@@ -65,7 +65,7 @@
 	  ;;(stat-begin-process plan "go-plan")
 	  (go-plan plan)
 	  ;;(stat-update-process "save-benefit")
-	  (save-benefits-2 plan)
+	  (save-benefits plan)
 	  (mark-completed plan)
 	  ))))))
 
