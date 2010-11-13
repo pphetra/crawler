@@ -106,7 +106,7 @@
 
 (defn escape-sql [txt]
   (.. txt
-      (replace "'" "\\'")
+      (replace "'" "''")
       (replace "\n" "\\n")))
 
 (defn plan-sql [plan]
@@ -126,7 +126,7 @@
 	segment (:segment plan)
 	fips (:fips plan)
 	lid (:event-id plan)]
-    (map (fn [benefit] (format "INSERT INTO [mds_1_6_r3].[mds_schema].[MDS_WC_TMP_MOC_BENEFIT] ([LOAD_EVENT_ID], [CONTRACT_H_NAME], [PLAN_NAME], [SEGMENT], [CATEGORYID], [CATEGORYNAME], [BENEFIT_STAT], [FROMFIPS]) values ('%s', '%s', '%s', '%s', %s, '%s', '%s', '%s');\nGO;\n"
+    (map (fn [benefit] (format "INSERT INTO [mds_1_6_r3].[mds_schema].[MDS_WC_TMP_MOC_BENEFIT] ([LOAD_EVENT_ID], [CONTRACT_H_NAME], [PLAN_NAME], [SEGMENT], [CATEGORYID], [CATEGORYNAME], [BENEFIT_STAT], [FROMFIPS]) values ('%s', '%s', '%s', '%s', %s, '%s', '%s', '%s');\nGO\n"
 			       lid
 			       contract_h_name
 			       plan_name
