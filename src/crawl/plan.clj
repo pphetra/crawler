@@ -14,14 +14,14 @@
 		   fips             ;;
 		   ]
   " return true if non-exist plan "
-  (let [oldValue (fetch-one :plans2 :where { :_id id })
+  (let [oldValue (fetch-one :plans :where { :_id id })
 	ary (.split id "-")
 	contract_h_name (nth ary 0)
 	plan_name (nth ary 1)
 	segment (nth ary 2)]
     (if (nil? oldValue)
       (do
-	(insert! :plans2
+	(insert! :plans
 		 { :_id id
 		  :contract_h_name contract_h_name
 		  :plan_name plan_name
@@ -38,7 +38,7 @@
       false)))
 
 (defn mark-completed [plan]
-  (update! :plans2
+  (update! :plans
 	   {:_id plan}
 	   {:$set {:process_detail true}}))
 
@@ -84,7 +84,7 @@
 
 (defn insert-plan-detail [plan_id key value]
   (let [cat_id (get benefit-type key)]
-    (update! :plans2
+    (update! :plans
 	     {:_id plan_id}
 	     {:$push {:benefit-detail {
 				       :name key
@@ -93,7 +93,7 @@
 
 (defn insert-plan-detail-2 [plan_id key value]
   (let [cat_id (get benefit-type key)]
-    (update! :plans2
+    (update! :plans
 	     {:_id plan_id}
 	     {:$push {:benefit-detail2 {
 				       :name key
@@ -102,7 +102,7 @@
 	    
 	       
 (defn un-process-plans []
-  (fetch :plans2 :where {:process_detail false}))
+  (fetch :plans :where {:process_detail false}))
 
 (defn escape-sql [txt]
   (.. txt
@@ -142,17 +142,17 @@
     (concat [psql] bsqls)))
 
 (defn dump-sql []
-  (let [plans (fetch :plans2 :where {:process_detail true})]
+  (let [plans (fetch :plans :where {:process_detail true})]
     (map benefit-sql plans)))
 
 (defn get-extracted-fip []
   (let [fip-set (java.util.HashSet.)]
-    (doseq [code (map :fips (fetch :plans2))]
+    (doseq [code (map :fips (fetch :plans))]
       (.add fip-set code))
     fip-set))
 
 (defn get-unprocess-plan []
-  (let [plans (fetch :plans2)
+  (let [plans (fetch :plans)
 	no-detail-list (remove
 			(fn [plan] (not (nil? (:process-detail plan))))
 			plans)]
